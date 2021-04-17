@@ -165,10 +165,19 @@ func responseDataAsMetrics(r *prometheus.Registry, labels prometheus.Labels, pat
 	// the metric with that label takes the value of 1.
 	// Beware, however, that if a value changed since its last scrape, it will not
 	// be returned as 0, since we don't know about its existence now.
-	case string:
-		labels["value"] = (*data).(string)
-		setGaugeValue(r, labels, path, 1)
-		delete(labels, "value")
+
+	// there are some instances where graphql returns a float that is represented as a string
+	// try to convert to float here so it can be properly represented as time series data
+ case string:
+  // try to convert string to int
+  data_float, err := strconv.ParseFloat((*data).(string), 32)
+  if err == nil {
+   setGaugeValue(r, labels, path, data_float)
+  } else {
+   labels["value"] = (*data).(string)
+   setGaugeValue(r, labels, path, 1)
+   delete(labels, "value")
+  }
 
 	// Arrays are recursively inspected.
 	// To uniquely identify items within arrays, a label is added to all metrics
