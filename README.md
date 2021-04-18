@@ -18,11 +18,11 @@ See [examples](examples/README.md).
 
 Available on [Docker Hub](https://hub.docker.com) as [`docker.io/ricardbejarano/graphql_exporter`](https://hub.docker.com/r/ricardbejarano/graphql_exporter):
 
-- [`1.0.0`, `latest` *(Dockerfile)*](Dockerfile)
+- [`1.1.0`, `latest` *(Dockerfile)*](Dockerfile)
 
 Also available on [Quay](https://quay.io) as [`quay.io/ricardbejarano/graphql_exporter`](https://quay.io/repository/ricardbejarano/graphql_exporter):
 
-- [`1.0.0`, `latest` *(Dockerfile)*](Dockerfile)
+- [`1.1.0`, `latest` *(Dockerfile)*](Dockerfile)
 
 Any of both registries will do, example:
 
