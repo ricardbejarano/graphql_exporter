@@ -175,7 +175,7 @@ func responseDataAsMetrics(r *prometheus.Registry, labels prometheus.Labels, pat
 			setGaugeValue(r, labels, path, 1)
 		}
 		delete(labels, "value")
-		
+
 	// Arrays are recursively inspected.
 	// To uniquely identify items within arrays, a label is added to all metrics
 	// contained in the array. Its name is the last value in path, and its value
