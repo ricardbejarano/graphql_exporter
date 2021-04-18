@@ -9,21 +9,6 @@ GraphQL metrics exporter for Prometheus.
 
 This piece of software has one mission: query GraphQL endpoints and transform their results into Prometheus metrics.
 
-# Additions
-Edited `query.go` so it attempts to convert a string to a float64. When graphql returns data it can often be in a string format
-```
-case string:
-  // try to convert string to int
-  data_float, err := strconv.ParseFloat((*data).(string), 32)
-  if err == nil {
-   setGaugeValue(r, labels, path, data_float)
-  } else {
-   labels["value"] = (*data).(string)
-   setGaugeValue(r, labels, path, 1)
-   delete(labels, "value")
-  }
-```
-
 
 # Usage
 
