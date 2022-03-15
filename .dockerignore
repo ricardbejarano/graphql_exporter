@@ -1,8 +1,0 @@
-.git/
-.github/
-bin/
-examples/
-.gitignore
-Dockerfile
-LICENSE
-README.md
