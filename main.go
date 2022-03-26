@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/usewormhol/env"
 )
 
 var (
-	EXPORTER_LISTEN_ADDR   = env.String("EXPORTER_LISTEN_ADDR", "127.0.0.1:9199", env.Optional)
-	EXPORTER_TLS_CERT_FILE = env.String("EXPORTER_TLS_CERT_FILE", "", env.Optional)
-	EXPORTER_TLS_KEY_FILE  = env.String("EXPORTER_TLS_KEY_FILE", "", env.Optional)
+	EXPORTER_LISTEN_ADDR   = getenv("EXPORTER_LISTEN_ADDR", "127.0.0.1:9199")
+	EXPORTER_TLS_CERT_FILE = getenv("EXPORTER_TLS_CERT_FILE", "")
+	EXPORTER_TLS_KEY_FILE  = getenv("EXPORTER_TLS_KEY_FILE", "")
 )
 
 func main() {
@@ -44,4 +44,11 @@ func main() {
 	}
 	log.Printf("info: listening on http://%s", EXPORTER_LISTEN_ADDR)
 	log.Fatalf("critical: %s", http.ListenAndServe(EXPORTER_LISTEN_ADDR, nil))
+}
+
+func getenv(key string, fallback string) string {
+	if value := os.Getenv(key); len(value) > 0 {
+		return value
+	}
+	return fallback
 }

@@ -1,10 +1,14 @@
-all: fmt build
+all: lint tidy build
 
-fmt:
-	find . -name '*.go' -exec gofmt -e -s -w {} +
+lint:
+	goimports -w .
+	gofmt -w -s .
+
+tidy:
+	go mod tidy
 
 build:
-	CGO_ENABLED=0 go build -o bin/graphql_exporter
+	CGO_ENABLED=0 go build -o bin/ .
 
 clean:
 	rm -r bin

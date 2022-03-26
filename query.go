@@ -13,7 +13,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/ricardbejarano/go-graphql"
 )
 
 var (
@@ -84,26 +83,26 @@ func queryHandler(w http.ResponseWriter, r *http.Request) error {
 	delete(header, "Accept")
 	delete(header, "Accept-Encoding")
 
-	// Instantiating graphql.Client.
-	client, err := graphql.NewWithHeader(endpoint, &header)
+	// Instantiating Client.
+	client, err := NewWithHeader(endpoint, &header)
 	if err != nil {
-		return fmt.Errorf("queryHandler: error while instantiating graphql.Client: %s", err)
+		return fmt.Errorf("queryHandler: error while instantiating Client: %s", err)
 	}
 
 	// Instantiating prometheus.Registry.
 	registry := prometheus.NewRegistry()
 
 	// Making the requests concurrently.
-	requests := make([]*graphql.Request, len(queries))
+	requests := make([]*Request, len(queries))
 	for i, query := range queries {
-		requests[i] = &graphql.Request{Query: query, Variables: variables}
+		requests[i] = &Request{Query: query, Variables: variables}
 	}
 	responsesChannel, preQueryingErrorsChannel := client.QueryMany(requests)
 
 	var postQueryingErrors []interface{}
 
 	// Parsing query responses as they come in.
-	// Additionally, this is how we wait for graphql.Client.QueryMany's goroutines
+	// Additionally, this is how we wait for Client.QueryMany's goroutines
 	// to finish, as that will be notified by closing the responsesChannel and
 	// preQueryingErrorsChannel channels.
 	for response := range responsesChannel {

@@ -1,17 +1,25 @@
-FROM golang:1-alpine AS build
+FROM docker.io/golang:1 AS build
 
-COPY . /build
-RUN apk add ca-certificates make && \
-    cd /build && \
+RUN mkdir -p /rootfs/etc/ssl/certs
+
+RUN echo "nobody:*:10000:nobody" > /rootfs/etc/group \
+    && echo "nobody:*:10000:10000:::" > /rootfs/etc/passwd
+
+ARG DEBIAN_FRONTEND="noninteractive"
+RUN apt-get update
+
+RUN apt-get install --yes --no-install-recommends \
       make
 
-RUN mkdir -p /rootfs/bin && \
-      cp /build/bin/graphql_exporter /rootfs/bin/ && \
-    mkdir -p /rootfs/etc && \
-      echo "nogroup:*:10000:nobody" > /rootfs/etc/group && \
-      echo "nobody:*:10000:10000:::" > /rootfs/etc/passwd && \
-    mkdir -p /rootfs/etc/ssl/certs && \
-      cp /etc/ssl/certs/ca-certificates.crt /rootfs/etc/ssl/certs/
+RUN apt-get install --yes --no-install-recommends \
+      ca-certificates \
+    && cp -r /etc/ssl/certs/ca-certificates.crt /rootfs/etc/ssl/certs/
+
+COPY . /build
+RUN cd /build \
+    && make build \
+    && mkdir -p /rootfs \
+    && cp -r /build/bin /rootfs/
 
 
 FROM scratch
@@ -19,6 +27,7 @@ FROM scratch
 COPY --from=build --chown=10000:10000 /rootfs /
 
 ENV EXPORTER_LISTEN_ADDR="0.0.0.0:9199"
-USER 10000:10000
-EXPOSE 9199/tcp
+USER nobody:nobody
+WORKDIR /
+EXPOSE 9199/TCP
 ENTRYPOINT ["/bin/graphql_exporter"]

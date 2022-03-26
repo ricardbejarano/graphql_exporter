@@ -1,4 +1,4 @@
-# Cloudflare GraphQL Analytics API
+# Cloudflare Analytics API
 
 ## Run `graphql_exporter`
 
@@ -16,7 +16,7 @@ Insert the following into your `prometheus.yml`:
 scrape_configs:
   - job_name: "cloudflare-analytics"
     metrics_path: "/query"
-    bearer_token: "<YOUR CLOUDFLARE API TOKEN>"
+    bearer_token: "<YOUR_CLOUDFLARE_API_TOKEN>"
     params:
       endpoint: ["https://api.cloudflare.com/client/v4/graphql"]
       query:
@@ -38,17 +38,7 @@ scrape_configs:
               }
             }
           }
-      zoneTag: ["<YOUR CLOUDFLARE ZONE ID>"]  # a GraphQL query variable
+      zoneTag: ["<YOUR_CLOUDFLARE_ZONE_ID>"]  # a GraphQL query variable
     static_configs:
       - targets: ["127.0.0.1:9199"]  # graphql_exporter address:port
-```
-
-## Check your new metrics!
-
-Once Prometheus has scraped the `graphql_exporter`, you should be able to query your brand new metrics.
-
-If you used the above query, consider running the following PromQL query:
-
-```
-query_viewer_zones_httpRequests1hGroups_sum_requests
 ```
