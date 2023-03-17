@@ -1,5 +1,5 @@
 <div align="center">
-  <p><img src="https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/160/apple/325/fire_1f525.png" width="100px"></p>
+  <p><img src="https://em-content.zobj.net/thumbs/160/apple/325/fire_1f525.png" width="100px"></p>
   <h1>graphql_exporter</h1>
   <p>Prometheus exporter for <a href="https://www.graphql.com/">GraphQL</a></p>
   <code>docker pull quay.io/ricardbejarano/graphql_exporter</code>
