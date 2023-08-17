@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"sync"
@@ -66,12 +65,15 @@ func (c *Client) Query(request *Request) (*Response, error) {
 		return nil, err
 	}
 
-	httpResponse, err := c.client.Do(&http.Request{
-		Method: http.MethodPost,
-		URL:    c.Endpoint,
-		Header: *c.header,
-		Body:   ioutil.NopCloser(bytes.NewReader(requestBody)),
-	})
+	r, err := http.NewRequest(http.MethodPost, c.Endpoint.String(), bytes.NewBuffer(requestBody))
+
+	if err != nil {
+		return nil, err
+	}
+
+	r.Header = *c.header
+
+	httpResponse, err := c.client.Do(r)
 	if err != nil {
 		return nil, err
 	}
