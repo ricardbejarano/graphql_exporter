@@ -14,13 +14,13 @@
 
 Available on Docker Hub as [`docker.io/ricardbejarano/graphql_exporter`](https://hub.docker.com/r/ricardbejarano/graphql_exporter):
 
-- [`v1.2.1`, `latest` *(Dockerfile)*](Dockerfile)
+- [`v1.2.2`, `latest` *(Dockerfile)*](Dockerfile)
 
 #### RedHat Quay
 
 Available on RedHat Quay as [`quay.io/ricardbejarano/graphql_exporter`](https://quay.io/repository/ricardbejarano/graphql_exporter):
 
-- [`v1.2.1`, `latest` *(Dockerfile)*](Dockerfile)
+- [`v1.2.2`, `latest` *(Dockerfile)*](Dockerfile)
 
 ### Building the container image yourself
 
