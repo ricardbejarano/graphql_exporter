@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"text/template"
@@ -91,6 +92,7 @@ func queryHandler(w http.ResponseWriter, r *http.Request) error {
 
 	// Instantiating prometheus.Registry.
 	registry := prometheus.NewRegistry()
+	gauges := map[string]*prometheus.GaugeVec{}
 
 	// Making the requests concurrently.
 	requests := make([]*Request, len(queries))
@@ -116,7 +118,7 @@ func queryHandler(w http.ResponseWriter, r *http.Request) error {
 		// Skipping parsing if there were errors already.
 		if len(postQueryingErrors) == 0 {
 			// Parsing query response data as metrics.
-			responseDataAsMetrics(registry, prometheus.Labels{"endpoint": endpoint}, []string{"query"}, &response.Data)
+			responseDataAsMetrics(registry, gauges, prometheus.Labels{"endpoint": endpoint}, []string{"query"}, &response.Data)
 		}
 	}
 
@@ -141,7 +143,7 @@ func queryHandler(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func responseDataAsMetrics(r *prometheus.Registry, labels prometheus.Labels, path []string, data *interface{}) {
+func responseDataAsMetrics(r *prometheus.Registry, g map[string]*prometheus.GaugeVec, labels prometheus.Labels, path []string, data *interface{}) {
 	// Recursively inspect data and register its values as metrics by the
 	// following convention, given that all metric values must be float64s:
 
@@ -150,14 +152,14 @@ func responseDataAsMetrics(r *prometheus.Registry, labels prometheus.Labels, pat
 	// Boolean values are represented as a 1 if true, 0 otherwise.
 	case bool:
 		if (*data).(bool) {
-			setGaugeValue(r, labels, path, 1)
+			setGaugeValue(r, g, labels, path, 1)
 		} else {
-			setGaugeValue(r, labels, path, 0)
+			setGaugeValue(r, g, labels, path, 0)
 		}
 
 	// Number values are converted into float64 without changing their value.
 	case float64:
-		setGaugeValue(r, labels, path, (*data).(float64))
+		setGaugeValue(r, g, labels, path, (*data).(float64))
 
 	// String values are not supported by Prometheus, so:
 	//   - the string value is stored as the value of a "value" label; and
@@ -169,9 +171,9 @@ func responseDataAsMetrics(r *prometheus.Registry, labels prometheus.Labels, pat
 	case string:
 		labels["value"] = (*data).(string)
 		if value, err := strconv.ParseFloat((*data).(string), 64); err == nil {
-			setGaugeValue(r, labels, path, value)
+			setGaugeValue(r, g, labels, path, value)
 		} else {
-			setGaugeValue(r, labels, path, 1)
+			setGaugeValue(r, g, labels, path, 1)
 		}
 		delete(labels, "value")
 
@@ -182,7 +184,7 @@ func responseDataAsMetrics(r *prometheus.Registry, labels prometheus.Labels, pat
 	case []interface{}:
 		for i, value := range (*data).([]interface{}) {
 			labels[path[len(path)-1]] = strconv.Itoa(i)
-			responseDataAsMetrics(r, labels, path, &value)
+			responseDataAsMetrics(r, g, labels, path, &value)
 		}
 		delete(labels, path[len(path)-1])
 
@@ -198,20 +200,27 @@ func responseDataAsMetrics(r *prometheus.Registry, labels prometheus.Labels, pat
 	//   https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels
 	case map[string]interface{}:
 		for key, value := range (*data).(map[string]interface{}) {
-			responseDataAsMetrics(r, labels, append(path, key), &value)
+			responseDataAsMetrics(r, g, labels, append(path, key), &value)
 		}
 
 	}
 }
 
-func setGaugeValue(r *prometheus.Registry, labels prometheus.Labels, path []string, value float64) {
+func setGaugeValue(r *prometheus.Registry, g map[string]*prometheus.GaugeVec, labels prometheus.Labels, path []string, value float64) {
 	var labelNames []string
 	for key := range labels {
 		labelNames = append(labelNames, key)
 	}
+	sort.Strings(labelNames)
 
-	gauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: strings.Join(path, "_")}, labelNames)
+	name := strings.Join(path, "_")
+	key := strings.Join(append([]string{name}, labelNames...), ",")
+
+	gauge, ok := g[key]
+	if !ok {
+		gauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: name}, labelNames)
+		g[key] = gauge
+		r.Register(gauge)
+	}
 	gauge.With(labels).Set(value)
-
-	r.Register(gauge)
 }
