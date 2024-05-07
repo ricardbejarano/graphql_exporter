@@ -1,0 +1,11 @@
+query {
+  job_results(status: "completed") {
+    job_model {
+      grouping
+      job_class_name
+    }
+    job_id
+    created
+    completed
+  }
+}
