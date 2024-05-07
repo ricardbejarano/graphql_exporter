@@ -2,14 +2,18 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
+
+	"errors"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -25,13 +29,25 @@ var (
 	EXPORTER_TLS_CERT_FILE = getenv("EXPORTER_TLS_CERT_FILE", "")
 	EXPORTER_TLS_KEY_FILE  = getenv("EXPORTER_TLS_KEY_FILE", "")
 	EXPORTER_GRAPHQL_URL   = getenv("EXPORTER_GRAPHQL_URL", "")
+	EXPORTER_GRAPHQL_AUTH  = getenv("EXPORTER_GRAPHQL_AUTH", "")
+	EXPORTER_CACHE_MINUTES = getenvInt("EXPORTER_CACHE_MINUTES", 60)
 )
 
 var (
-	client          = &http.Client{Timeout: 10 * time.Second}
-	cacheExpiration = 1 * time.Hour // Set your desired cache expiration time here
+	client          = &http.Client{Timeout: 20 * time.Second}
+	cacheExpiration = parseDuration(fmt.Sprintf("%dm", EXPORTER_CACHE_MINUTES))
 	cacheMutex      sync.RWMutex
 )
+
+var ErrEnvVarEmpty = errors.New("getenv: environment variable empty")
+
+func parseDuration(s string) time.Duration {
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		fmt.Println("Error parsing duration:", err)
+	}
+	return d
+}
 
 func getenv(key string, fallback string) string {
 	if value := os.Getenv(key); len(value) > 0 {
@@ -40,7 +56,38 @@ func getenv(key string, fallback string) string {
 	return fallback
 }
 
+func getenvStr(key string) (string, error) {
+	v := os.Getenv(key)
+	if v == "" {
+		return v, ErrEnvVarEmpty
+	}
+	return v, nil
+}
+
+func getenvInt(key string, fallback int) int {
+	s, err := getenvStr(key)
+	if err != nil {
+		fmt.Printf("getenvInt: Error getting value for key %s. Using default %d\n", key, fallback)
+		return fallback
+	}
+	v, err := strconv.Atoi(s)
+	if err != nil {
+		fmt.Printf("getenvInt: Error converting key %s\n using default %d\n", key, fallback)
+		return fallback
+	}
+	return v
+}
+
 func main() {
+	if _, err := os.Stat(cacheDir); os.IsNotExist(err) {
+		err := os.Mkdir(cacheDir, os.ModePerm)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+	}
+
 	http.HandleFunc("/queries/", handleQuery)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
@@ -77,8 +124,8 @@ func handleQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authToken := r.Header.Get("Authorization")
-	result, err := executeGraphQLQuery(string(queryData), authToken)
+	//authToken := r.Header.Get("Authorization")
+	result, err := executeGraphQLQuery(string(queryData), EXPORTER_GRAPHQL_AUTH)
 	if err != nil {
 		http.Error(w, "Failed to execute GraphQL query", http.StatusInternalServerError)
 		return
@@ -89,13 +136,25 @@ func handleQuery(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Failed to write cache:", err)
 	}
 
+	fmt.Printf("Refreshed cache for path: %s", queryPath)
+
 	fmt.Fprintf(w, string(result))
 }
 
+// TODO authToken
 func executeGraphQLQuery(query, authToken string) ([]byte, error) {
 	url := EXPORTER_GRAPHQL_URL
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(query)))
+	reqBody, err := json.Marshal(map[string]string{
+		"query": string(query),
+	})
+
+	if err != nil {
+		fmt.Println("Error constructing request body:", err)
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(reqBody)))
 	if err != nil {
 		return nil, err
 	}
