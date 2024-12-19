@@ -9,15 +9,12 @@ ARG DEBIAN_FRONTEND="noninteractive"
 RUN apt-get update
 
 RUN apt-get install --yes --no-install-recommends \
-      make
-
-RUN apt-get install --yes --no-install-recommends \
       ca-certificates \
     && cp -r /etc/ssl/certs/ca-certificates.crt /rootfs/etc/ssl/certs/
 
 COPY . /build
 RUN cd /build \
-    && make build \
+    && CGO_ENABLED=0 go build -o bin/ . \
     && mkdir -p /rootfs \
     && cp -r /build/bin /rootfs/
 

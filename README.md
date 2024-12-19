@@ -32,7 +32,7 @@ docker run -it -p 9199:9199 graphql_exporter
 ### Building the binary yourself
 
 ```bash
-make
+go build -o bin/ .
 ./bin/graphql_exporter
 ```
 
