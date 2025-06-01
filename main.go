@@ -17,12 +17,23 @@ var (
 )
 
 func main() {
+	help := fmt.Sprintf(`GraphQL exporter for Prometheus.
+Exporter metrics available at /metrics.
+Querying available at /query.
+
+Copyright (c) %s Ricard Bejarano
+`,
+		time.Now().Format("2006"),
+	)
+
+	if len(os.Args) > 1 {
+		fmt.Printf(help)
+		return
+	}
+
 	http.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		// Returns some basic info about the exporter.
-		w.Write([]byte("GraphQL exporter for Prometheus.\n"))
-		w.Write([]byte("Exporter metrics available at /metrics.\n"))
-		w.Write([]byte("Querying available at /query.\n\n"))
-		w.Write([]byte(fmt.Sprintf("Copyright (c) %s Ricard Bejarano\n", time.Now().Format("2006"))))
+		w.Write([]byte(help))
 	})
 
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
